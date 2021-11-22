@@ -14,6 +14,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -22,6 +23,24 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.zip.Inflater;
 
 public class MainActivity2 extends AppCompatActivity {
@@ -61,6 +80,12 @@ public class MainActivity2 extends AppCompatActivity {
             Toast.makeText(this, "I am Mobile", Toast.LENGTH_SHORT).show();
         }
         // Connectivy manager
+        try {
+            getDataHttp();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
     // ir de la ventana a A la ventana B
     public void navegarEntreVentanas(View f){
@@ -207,4 +232,82 @@ public class MainActivity2 extends AppCompatActivity {
         }
     }
     //////////////////// UI vs sub proceso principal
+    /// Consumo por HTTP por volley
+    public void getDataVolley(){
+// Instantiate the RequestQueue.
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String url ="https://run.mocky.io/v3/d0dc703a-1a0c-49b1-9146-f7ba5b92088c";
+        // Request a string response from the provided URL.
+        JsonObjectRequest objectRequest = new JsonObjectRequest(Request.Method.GET, url,null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            JSONArray estudiantes = response.getJSONArray("estudiantes");
+                            int cantidadEstudiantes = estudiantes.length();
+                            for (int i = 0; i < cantidadEstudiantes; i++) {
+                                JSONObject estudiante = estudiantes.getJSONObject(i);
+                                Log.d("", (i+1)+": Nombre: "+estudiante.getString("nombre")+" "+estudiante.getString("apellido"));
+                                JSONArray materias = estudiante.getJSONArray("materias");
+                                for (int j = 0; j < materias.length(); j++) {
+                                    JSONObject materia = materias.getJSONObject(j);
+                                    Log.d("", (j+1)+": Materia: "+materia.getString("name"));
+                                }
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                // textView.setText("That didn't work!");
+                System.out.println("That didn't work!");
+            }
+        });
+        // Add the request to the RequestQueue.
+        queue.add(objectRequest);
+    }
+    /// Consumo por HTTP por HttpUrlConnection
+
+    public  void getDataHttp() throws IOException {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                URL url = null;
+                try {
+                    url = new URL("https://run.mocky.io/v3/d0dc703a-1a0c-49b1-9146-f7ba5b92088c");
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
+                HttpURLConnection connection = null;
+                try {
+                    connection = (HttpURLConnection) url.openConnection();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    Log.d("", "code: "+connection.getResponseCode());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    if (connection.getResponseCode() == HttpURLConnection.HTTP_OK){
+                        // connection.setRequestProperty("Accept", "application/json");
+                        try {
+                            InputStream in = new BufferedInputStream(connection.getInputStream());
+                            Log.d("", "Respuesta: "+in);
+                        } finally {
+                            connection.disconnect();
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+
+
+
+    }
 }
