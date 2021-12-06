@@ -9,6 +9,7 @@ import androidx.fragment.app.FragmentTransaction;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -30,6 +31,8 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.univalle2021_2.Connection.Connection;
+import com.example.univalle2021_2.services.MyService;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -49,6 +52,8 @@ public class MainActivity2 extends AppCompatActivity {
     int contador;
     Button pintar;
     Pintar objPintar;
+    SQLiteDatabase db;
+    Connection conn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,12 +85,18 @@ public class MainActivity2 extends AppCompatActivity {
             Toast.makeText(this, "I am Mobile", Toast.LENGTH_SHORT).show();
         }
         // Connectivy manager
-        try {
+        /*try {
             getDataHttp();
         } catch (IOException e) {
             e.printStackTrace();
+        }*/
+        getDataVolley();
+        iniciarServicio();
+        conn = new Connection(this,"univalle",null,1);
+        if (conn != null){
+            Toast.makeText(this, "The database has been created", Toast.LENGTH_SHORT).show();
         }
-
+        db = conn.getWritableDatabase();
     }
     // ir de la ventana a A la ventana B
     public void navegarEntreVentanas(View f){
@@ -248,6 +259,7 @@ public class MainActivity2 extends AppCompatActivity {
                             for (int i = 0; i < cantidadEstudiantes; i++) {
                                 JSONObject estudiante = estudiantes.getJSONObject(i);
                                 Log.d("", (i+1)+": Nombre: "+estudiante.getString("nombre")+" "+estudiante.getString("apellido"));
+                                db.execSQL("INSERT into students (id,name) values (" + (i+1)+",'"+estudiante.getString("nombre")+"');");
                                 JSONArray materias = estudiante.getJSONArray("materias");
                                 for (int j = 0; j < materias.length(); j++) {
                                     JSONObject materia = materias.getJSONObject(j);
@@ -306,8 +318,10 @@ public class MainActivity2 extends AppCompatActivity {
                 }
             }
         }).start();
+    }
 
-
-
+    public void iniciarServicio(){
+        Intent servicio = new Intent(this, MyService.class);
+        startService(servicio);
     }
 }
